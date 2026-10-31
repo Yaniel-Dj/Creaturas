@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generador SQL — Creature Editor (Estilo Keira3)</title>
+<style>
+  :root{
+    --bg:#080f0c; --panel:#0f1a15; --panel2:#142019; --border:#1f3b2d;
+    --text:#f3f4f6; --muted:#94a89d;
+    --accent:#10b981; --accent2:#059669;
+    --blue:#0ea5e9; --blue-hover:#0284c7;
+    --ok:#22c55e; --danger:#991b1b; --warn:#f59e0b;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:'Segoe UI',system-ui,sans-serif;
+    background:radial-gradient(1200px 600px at 10% -10%, rgba(5,150,105,.18), transparent 60%),var(--bg);
+    color:var(--text);padding:24px;line-height:1.55;min-height:100vh;
+  }
+  .container{max-width:1250px;margin:0 auto}
+  .hero{
+    border-radius:18px;padding:32px 34px;margin-bottom:22px;
+    background:linear-gradient(135deg, rgba(5,150,105,.20), rgba(4,120,87,.16)), var(--panel);
+    border:1px solid rgba(16,185,129,.3);
+  }
+  .hero-eyebrow{
+    display:inline-flex;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.35);
+    color:#6ee7b7;padding:5px 12px;border-radius:999px;font-size:.72rem;font-weight:700;
+    letter-spacing:.06em;text-transform:uppercase;margin-bottom:14px;
+  }
+  .hero-title{
+    font-size:2.1rem;font-weight:800;
+    background:linear-gradient(90deg,#d1fae5,#10b981);
+    -webkit-background-clip:text;background-clip:text;
+    -webkit-text-fill-color:transparent;color:transparent;margin-bottom:8px;
+  }
+  .hero-sub{color:var(--muted);font-size:.95rem;max-width:820px}
+  .hero-sub b{color:var(--text)}
+
+  .banner{
+    background:var(--panel2);border-left:4px solid var(--accent);
+    padding:12px 16px;border-radius:6px;font-size:.85rem;color:var(--muted);margin-bottom:20px;
+  }
+  .banner code{background:#000;padding:2px 6px;border-radius:4px;color:#6ee7b7;font-size:.82rem}
+
+  .cat-title{
+    font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;
+    color:var(--muted);font-weight:700;margin-bottom:10px;
+  }
+  .categories{
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+    gap:12px;margin-bottom:22px;
+  }
+  .cat-card{
+    position:relative;overflow:hidden;background:var(--panel);
+    border:2px solid var(--border);border-radius:12px;padding:18px 16px;
+    cursor:pointer;transition:.25s;text-align:left;font-family:inherit;color:var(--text);
+    display:flex;flex-direction:column;gap:6px;
+  }
+  .cat-card::before{
+    content:"";position:absolute;top:0;left:0;right:0;height:3px;
+    background:var(--cat-color, var(--accent));opacity:.85;transition:.25s;
+  }
+  .cat-card:hover{transform:translateY(-3px);border-color:var(--cat-color, var(--accent))}
+  .cat-card.active{
+    border-color:var(--cat-color, var(--accent));
+    background:linear-gradient(135deg, var(--cat-bg, rgba(16,185,129,.1)), var(--panel));
+  }
+  .cat-icon{font-size:1.9rem;margin-bottom:4px}
+  .cat-name{font-weight:800;font-size:1rem;color:var(--cat-color, var(--accent))}
+  .cat-desc{font-size:.75rem;color:var(--muted);line-height:1.35}
+  .cat-normal  { --cat-color:#10b981; --cat-bg:rgba(16,185,129,.08); }
+  .cat-boss    { --cat-color:#ef4444; --cat-bg:rgba(239,68,68,.08); }
+  .cat-mount   { --cat-color:#06b6d4; --cat-bg:rgba(6,182,212,.08); }
+  .cat-vendor  { --cat-color:#eab308; --cat-bg:rgba(234,179,8,.08); }
+  .cat-lua     { --cat-color:#a855f7; --cat-bg:rgba(168,85,247,.08); }
+
+  .tabs-nav{
+    display:flex;flex-wrap:wrap;border-bottom:2px solid var(--border);margin-bottom:20px;gap:2px;
+  }
+  .tab-btn{
+    background:var(--panel);border:1px solid transparent;border-bottom:none;
+    color:var(--muted);padding:10px 18px;font-size:0.9rem;font-weight:600;
+    cursor:pointer;transition:0.2s;border-radius:8px 8px 0 0;
+    position:relative;bottom:-2px;font-family:inherit;
+  }
+  .tab-btn:hover{color:var(--text);background:var(--panel2);}
+  .tab-btn.active{
+    color:var(--accent);background:var(--panel);border-color:var(--border);
+    border-bottom-color:var(--panel);font-weight:700;
+  }
+  .tab-btn.off{
+    opacity: .5;
+  }
+  .tab-btn.off::after{
+    content: "○";
+    color: var(--muted);
+    margin-left: 6px;
+    font-size: .7rem;
+  }
+  .tab-btn.on::after{
+    content: "●";
+    color: var(--ok);
+    margin-left: 6px;
+    font-size: .7rem;
+  }
+
+  .tab-pane{
+    display:none;background:var(--panel);border:1px solid var(--border);
+    border-radius:0 10px 10px 10px;padding:20px;margin-top:-2px;
+  }
+  .tab-pane.active{display:block;}
+
+  .tab-header{
+    border-bottom:1px solid var(--border);
+    padding-bottom:14px;
+    margin-bottom:18px;
+  }
+  .tab-header-line{
+    display:flex;align-items:center;flex-wrap:wrap;gap:10px;font-size:1rem;margin-bottom:6px;
+  }
+  .tab-header-table{
+    font-family:'Cascadia Code','Fira Code',monospace;
+    color:#93c5fd;background:rgba(14,165,233,.1);border:1px solid rgba(14,165,233,.3);
+    padding:3px 10px;border-radius:6px;font-size:.88rem;font-weight:600;
+  }
+  .tab-header-arrow{ color:var(--muted); font-size:.9rem; }
+  .tab-header-es{ color:var(--accent); font-weight:700; font-size:.95rem; }
+  .tab-header-badge{
+    font-size:.65rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
+    padding:3px 9px;border-radius:999px;margin-left:auto;
+  }
+  .tab-header-badge.yes{ background:var(--ok); color:#052e16; }
+  .tab-header-badge.no{ background:var(--warn); color:#451a03; }
+  .tab-header-desc{ color:var(--muted); font-size:.85rem; line-height:1.55; }
+  .tab-header-desc b{ color:var(--text); }
+  .tab-header-desc code{
+    background:#000;padding:1px 5px;border-radius:3px;color:#93c5fd;font-size:.78rem;
+  }
+
+  .optional-toggle{
+    display:flex;align-items:center;gap:10px;
+    background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.3);
+    border-radius:8px;padding:12px 16px;margin-bottom:18px;font-size:.88rem;
+  }
+  .optional-toggle input[type="checkbox"]{
+    width:18px;height:18px;accent-color:var(--warn);cursor:pointer;
+  }
+  .optional-toggle label{cursor:pointer;color:var(--muted);font-weight:500;flex:1;}
+  .optional-toggle label b{ color:var(--warn); }
+  .optional-fields{ display:none; }
+  .optional-fields.visible{ display:block; }
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+  .field{display:flex;flex-direction:column;gap:4px}
+  .field label{
+    font-size:.82rem;color:var(--text);font-weight:600;
+    display:flex;justify-content:space-between;gap:6px;align-items:flex-start;flex-wrap:wrap;
+    line-height:1.4;
+  }
+  .label-main{ display:inline-flex; flex-wrap:wrap; gap:4px; align-items:baseline; }
+  .label-key{
+    font-family:'Cascadia Code','Fira Code',monospace;
+    color:#93c5fd;font-size:.8rem;
+  }
+  .label-sep{ color:var(--muted); font-size:.75rem; }
+  .label-es{ color:var(--accent); font-size:.8rem; font-weight:600; }
+  .field .help{font-size:.72rem;color:var(--muted);line-height:1.4}
+  .field input,.field select{
+    background:var(--bg);border:1px solid var(--border);border-radius:6px;
+    color:var(--text);padding:8px 10px;font-size:.9rem;outline:none;font-family:inherit;
+  }
+  .field input:focus,.field select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(16,185,129,.15)}
+  .field.auto input,.field.auto select{
+    border-color:#10b981;
+    background:linear-gradient(90deg, rgba(16,185,129,.10), rgba(16,185,129,.02));
+    box-shadow:0 0 0 1px rgba(16,185,129,.25) inset;
+  }
+  .badge-auto{
+    display:none;font-size:.6rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
+    background:#10b981;color:#062e1f;padding:2px 7px;border-radius:4px;
+  }
+  .field.auto .badge-auto{display:inline-block}
+
+  .actions{display:flex;gap:12px;flex-wrap:wrap;margin:18px 0}
+  .btn{padding:12px 28px;border-radius:8px;border:none;font-weight:700;font-size:.95rem;cursor:pointer;transition:.2s}
+  .btn-primary{background:var(--blue);color:#fff}
+  .btn-primary:hover{background:var(--blue-hover)}
+  .btn-danger{background:var(--danger);color:#fff;border:1px solid #7f1d1d}
+  .btn-danger:hover{background:#7f1d1d}
+  .btn-copy{background:var(--ok);color:#fff}
+  .btn-copy:hover{background:#16a34a}
+  .btn-reset{background:var(--panel2);color:var(--muted);border:1px solid var(--border)}
+  .btn-reset:hover{background:var(--border);color:var(--text)}
+
+  .output-box{
+    background:#020705;border:1px solid var(--border);border-radius:10px;
+    padding:18px;font-family:'Cascadia Code','Fira Code',monospace;
+    font-size:.72rem;color:#6ee7b7;white-space:pre-wrap;word-break:break-all;
+    min-height:180px;max-height:520px;overflow:auto;line-height:1.45;
+  }
+  .output-box:empty::before{
+    content:'El SQL aparecerá aquí al pulsar Generar INSERT o Generar DELETE…';
+    color:#2a4d3a;font-style:italic;font-size:.9rem;
+  }
+  .note{font-size:.78rem;color:var(--warn);margin-top:10px}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header class="hero">
+    <div>
+      <div class="hero-eyebrow">AzerothCore 3.3.5a · Estilo Keira3</div>
+      <h1 class="hero-title">🐉 Editor de Criaturas</h1>
+      <p class="hero-sub">
+        Cada campo muestra su <b>nombre en inglés</b>, su <b>traducción al español</b> y una breve
+        explicación de <b>para qué sirve</b>. Las tablas opcionales se activan con una casilla.
+      </p>
+    </div>
+  </header>
+
+  <div class="banner">
+    <b>Tablas imprescindibles</b>: <code>creature_template</code> + <code>creature_template_model</code> + <code>creature_model_info</code>.
+    Las pestañas <b>Addon, Equip, Spells, Resistance y Movement</b> están <b>desactivadas</b> por defecto; márcalas si las necesitas.
+  </div>
+
+  <div class="cat-title">🎯 Tipo de criatura — pre-rellena campos automáticamente</div>
+  <div class="categories">
+    <button type="button" class="cat-card cat-normal active" data-cat="normal" onclick="applyCategory('normal')">
+      <span class="cat-icon">🐺</span><span class="cat-name">Criatura Normal</span>
+      <span class="cat-desc">Todos los campos en default. Edición manual.</span>
+    </button>
+    <button type="button" class="cat-card cat-boss" data-cat="boss" onclick="applyCategory('boss')">
+      <span class="cat-icon">💀</span><span class="cat-name">Boss</span>
+      <span class="cat-desc">Auto: rank, type_flags, facción hostil, vida y daño altos, IA agresiva.</span>
+    </button>
+    <button type="button" class="cat-card cat-mount" data-cat="mount" onclick="applyCategory('mount')">
+      <span class="cat-icon">🐎</span><span class="cat-name">Montura</span>
+      <span class="cat-desc">Auto: facción amistosa, tipo bestia, IA pasiva.</span>
+    </button>
+    <button type="button" class="cat-card cat-vendor" data-cat="vendor" onclick="applyCategory('vendor')">
+      <span class="cat-icon">💰</span><span class="cat-name">NPC Vendedor</span>
+      <span class="cat-desc">Auto: npcflag vendor+gossip, facción amistosa, IA pasiva.</span>
+    </button>
+    <button type="button" class="cat-card cat-lua" data-cat="lua" onclick="applyCategory('lua')">
+      <span class="cat-icon">📜</span><span class="cat-name">NPC Lua / Gossip</span>
+      <span class="cat-desc">Auto: npcflag gossip, gossip_menu_id, IA vacía para Eluna.</span>
+    </button>
+  </div>
+
+  <div id="editor-tabs">
+    <div class="tabs-nav" id="tabs-nav"></div>
+    <div id="tabs-content"></div>
+  </div>
+
+  <div class="actions">
+    <button type="button" class="btn btn-primary" onclick="generarSQL()">⚙️ Generar INSERT</button>
+    <button type="button" class="btn btn-danger" onclick="generarDelete()">🗑️ Generar DELETE</button>
+    <button type="button" class="btn btn-copy" onclick="copiarSQL(event)">📋 Copiar SQL</button>
+    <button type="button" class="btn btn-reset" onclick="resetForm()">🔄 Limpiar todo</button>
+  </div>
+
+  <div class="output-box" id="output" tabindex="0"></div>
+
+</div>
+
+<script>
+const TABS = [
+  { id: 'template',   icon: '📋', label: 'Template',
+    table: 'creature_template', es: 'Plantilla de criatura', required: true,
+    desc: 'Tabla base del NPC. Sin ella la criatura no existe.' },
+  { id: 'model',      icon: '🎨', label: 'Model',
+    table: 'creature_template_model + creature_model_info', es: 'Modelo 3D', required: true,
+    desc: 'Asigna el modelo visual y sus datos físicos. Sin ellas el NPC es invisible.' },
+  { id: 'addon',      icon: '🔮', label: 'Addon',
+    table: 'creature_template_addon', es: 'Extras de la criatura', required: false,
+    desc: 'Auras permanentes, montura visual, emotes y visibilidad. Opcional.' },
+  { id: 'equip',      icon: '⚔️', label: 'Equip',
+    table: 'creature_equip_template', es: 'Equipo visual', required: false,
+    desc: 'Armas y escudos visibles del NPC. Solo estético.' },
+  { id: 'spells',     icon: '✨', label: 'Spells',
+    table: 'creature_template_spell', es: 'Hechizos', required: false,
+    desc: 'Hasta 8 hechizos que la criatura puede lanzar.' },
+  { id: 'resistance', icon: '🛡️', label: 'Resistance',
+    table: 'creature_template_resistance', es: 'Resistencias elementales', required: false,
+    desc: 'Reduce el daño de cada escuela mágica.' },
+  { id: 'movement',   icon: '🏃', label: 'Movement',
+    table: 'creature_template_movement', es: 'Movimiento especial', required: false,
+    desc: 'Controla vuelo, nado, enraizamiento y persecución.' }
+];
+
+const OPTIONAL_TABS = ['addon','equip','spells','resistance','movement'];
+
+const FIELD_LABELS = {
+  entry:                    { es: 'Entrada / ID',            help: 'Identificador único de la criatura. Se usa con .npc add.' },
+  difficulty_entry_1:       { es: 'ID dificultad 1',         help: 'Variante del NPC para modo normal (mazmorra).' },
+  difficulty_entry_2:       { es: 'ID dificultad 2',         help: 'Variante del NPC para modo heroico.' },
+  difficulty_entry_3:       { es: 'ID dificultad 3',         help: 'Variante del NPC para modo 10/25 jugadores.' },
+  KillCredit1:              { es: 'Crédito de muerte 1',     help: 'Misión que se completa al matar a la criatura.' },
+  KillCredit2:              { es: 'Crédito de muerte 2',     help: 'Segundo crédito opcional.' },
+  name:                     { es: 'Nombre',                   help: 'Nombre visible al apuntar a la criatura.' },
+  subname:                  { es: 'Subtítulo',                help: 'Texto bajo el nombre: "Vendedor", "Maestro de vuelo"...' },
+  IconName:                 { es: 'Icono de gossip',          help: 'Icono del menú: "Buy", "Quest", "Trainer"...' },
+  gossip_menu_id:           { es: 'ID del menú gossip',       help: '0 = sin diálogo. Para Lua/Eluna usa 50000+.' },
+  minlevel:                 { es: 'Nivel mínimo',             help: 'Nivel más bajo que puede tener la criatura.' },
+  maxlevel:                 { es: 'Nivel máximo',             help: 'Nivel más alto. Debe ser mayor o igual al mínimo.' },
+  exp:                      { es: 'Expansión',                help: '0=Clásico, 1=TBC, 2=WotLK (3.3.5a).' },
+  faction:                  { es: 'Facción',                  help: '35 = amistoso, 14 = hostil. Define a quién ataca.' },
+  npcflag:                  { es: 'Funciones NPC',            help: '1=gossip · 2=quest · 8=trainer · 128=vendor · 129=gossip+vendor · 8192=repair.' },
+  speed_walk:               { es: 'Velocidad al caminar',     help: '1 = normal. Menor = más lento.' },
+  speed_run:                { es: 'Velocidad al correr',      help: '1.14286 = normal.' },
+  speed_swim:               { es: 'Velocidad al nadar',       help: '1 = normal en agua.' },
+  speed_flight:             { es: 'Velocidad al volar',       help: '1 = normal en vuelo.' },
+  detection_range:          { es: 'Rango de detección',       help: 'Distancia a la que la criatura detecta al jugador.' },
+  rank:                     { es: 'Rango',                    help: '0=Normal, 1=Élite, 2=Élite raro, 3=Boss, 4=Raro.' },
+  dmgschool:                { es: 'Escuela de daño',          help: '0=Físico, 1=Sagrado, 2=Fuego, 3=Naturaleza, 4=Escarcha, 5=Sombra, 6=Arcano.' },
+  BaseAttackTime:           { es: 'Tiempo de ataque base',    help: 'ms entre golpes melee. 0 = automático.' },
+  RangeAttackTime:          { es: 'Tiempo de ataque a distancia', help: 'ms entre disparos. 0 = automático.' },
+  BaseVariance:             { es: 'Varianza melee',           help: 'Variación del daño melee. 1 = normal.' },
+  RangeVariance:            { es: 'Varianza a distancia',     help: 'Variación del daño a distancia. 1 = normal.' },
+  unit_class:               { es: 'Clase de unidad',          help: '1=Guerrero, 2=Paladín, 4=Pícaro, 8=Mago.' },
+  unit_flags:               { es: 'Flags de unidad',          help: 'Flags varios (no atacable, etc.).' },
+  unit_flags2:              { es: 'Flags de unidad 2',        help: 'Flags extendidos. 2048 = no seleccionable.' },
+  dynamicflags:             { es: 'Flags dinámicos',          help: 'Normalmente 0.' },
+  family:                   { es: 'Familia',                  help: '1=lobo, 2=felino, 3=araña, 4=oso, 5=jabalí, 9=gorila. Solo bestias domables.' },
+  type:                     { es: 'Tipo de criatura',         help: '1=Bestia, 7=Humanoide, 3=Demonio, 6=No-muerto...' },
+  type_flags:               { es: 'Flags de tipo',            help: '4=boss, 16=raro. Suma para combinar.' },
+  lootid:                   { es: 'ID de botín',              help: 'ID de creature_loot_template. 0 = sin botín.' },
+  pickpocketloot:           { es: 'Botín de carterista',      help: 'ID de pickpocketing_loot_template.' },
+  skinloot:                 { es: 'Botín de desollar',        help: 'ID de skinning_loot_template.' },
+  PetSpellDataId:           { es: 'ID de hechizos de mascota',help: 'Solo para mascotas. 0 = ninguno.' },
+  VehicleId:                { es: 'ID de vehículo',           help: 'Para criaturas montables o vehículos.' },
+  mindmg:                   { es: 'Daño mínimo',              help: 'Daño melee mínimo. 0 = auto.' },
+  maxdmg:                   { es: 'Daño máximo',              help: 'Daño melee máximo. 0 = auto.' },
+  dmg_multiplier:           { es: 'Multiplicador de daño',    help: 'Multiplicador base. 1 = normal.' },
+  attackpower:              { es: 'Poder de ataque',          help: 'Poder de ataque melee. 0 = auto.' },
+  minrangedmg:              { es: 'Daño a distancia mín.',    help: 'Daño mínimo con arma a distancia.' },
+  maxrangedmg:              { es: 'Daño a distancia máx.',    help: 'Daño máximo con arma a distancia.' },
+  rangedattackpower:        { es: 'Poder de ataque a dist.',  help: 'Poder de ataque con arma a distancia.' },
+  mingold:                  { es: 'Oro mínimo',               help: 'En cobre. 10000 = 1 oro.' },
+  maxgold:                  { es: 'Oro máximo',               help: 'En cobre. 10000 = 1 oro.' },
+  AIName:                   { es: 'Tipo de IA',               help: 'AggressorAI, PassiveAI, SmartAI, GuardAI...' },
+  MovementType:             { es: 'Tipo de movimiento',       help: '0=Estático, 1=Aleatorio, 2=Ruta (waypoints).' },
+  movementId:               { es: 'ID de movimiento',         help: 'ID de ruta. 0 = ninguno.' },
+  HoverHeight:              { es: 'Altura de flotación',      help: 'Altura del suelo para criaturas voladoras.' },
+  ModCrowd:                 { es: 'Mod. de control de masas', help: 'Multiplicador de CC. 1 = normal.' },
+  ModCrowdRanged:           { es: 'Mod. CC a distancia',      help: 'Multiplicador de CC ranged. 1 = normal.' },
+  HealthModifier:           { es: 'Mod. de vida',             help: 'Multiplicador de vida. 15 = boss.' },
+  ManaModifier:             { es: 'Mod. de maná',             help: 'Multiplicador de maná. 1 = normal.' },
+  ArmorModifier:            { es: 'Mod. de armadura',         help: 'Multiplicador de armadura. 1 = normal.' },
+  DamageModifier:           { es: 'Mod. de daño',             help: 'Multiplicador de daño. 8 = boss.' },
+  ExperienceModifier:       { es: 'Mod. de experiencia',      help: 'Multiplicador de XP al matarlo.' },
+  RacialLeader:             { es: 'Líder racial',             help: '1 = reproduce la música de líder de facción.' },
+  RegenHealth:              { es: 'Regenerar vida',           help: '1 = sí, 0 = no.' },
+  flags_extra:              { es: 'Flags extra',              help: '2 = trigger, 64 = civil. Normalmente 0.' },
+  resistance1:              { es: 'Resistencia Sagrado',      help: 'Obsoleto en versiones modernas.' },
+  resistance2:              { es: 'Resistencia Fuego',        help: 'Obsoleto en versiones modernas.' },
+  resistance3:              { es: 'Resistencia Naturaleza',   help: 'Obsoleto en versiones modernas.' },
+  resistance4:              { es: 'Resistencia Escarcha',     help: 'Obsoleto en versiones modernas.' },
+  resistance5:              { es: 'Resistencia Sombra',       help: 'Obsoleto en versiones modernas.' },
+  resistance6:              { es: 'Resistencia Arcano',       help: 'Obsoleto en versiones modernas.' },
+  trainer_type:             { es: 'Tipo de entrenador',       help: '0=No, 1=Clase, 2=Profesión, 3=Mascotas.' },
+  trainer_spell:            { es: 'Hechizo de entrenador',    help: 'ID del hechizo principal.' },
+  trainer_class:            { es: 'Clase del entrenador',     help: 'Máscara de clases permitidas.' },
+  trainer_race:             { es: 'Raza del entrenador',      help: 'Máscara de razas permitidas.' },
+  ScriptName:               { es: 'Nombre del script',        help: 'Eluna: vacío. C++: nombre del script registrado.' },
+  VerifiedBuild:            { es: 'Versión verificada',       help: '12340 = 3.3.5a.' },
+
+  modelid1:                 { es: 'Modelo 1',                 help: 'CreatureDisplayID del modelo principal. Idx=0.' },
+  modelid2:                 { es: 'Modelo 2',                 help: 'Modelo alternativo. Idx=1.' },
+  modelid3:                 { es: 'Modelo 3',                 help: 'Modelo alternativo. Idx=2.' },
+  modelid4:                 { es: 'Modelo 4',                 help: 'Modelo alternativo. Idx=3.' },
+  display_scale:            { es: 'Escala del modelo',        help: 'Tamaño visual. 1 = normal.' },
+  mi_gender:                { es: 'Género',                   help: '0=Masculino, 1=Femenino, 2=Neutro.' },
+  mi_bounding_radius:       { es: 'Radio de colisión',        help: 'No usado en versiones modernas.' },
+  mi_combat_reach:          { es: 'Alcance de combate',       help: 'Distancia a la que golpea. 0 = genérico.' },
+  mi_display_other_gender:  { es: 'Modelo del otro género',   help: 'CreatureDisplayID alternativo. 0 = ninguno.' },
+
+  addon_path_id:            { es: 'ID de ruta',               help: 'Waypoint_data.id para patrullas.' },
+  addon_mount:              { es: 'Montura visual',           help: 'Model ID de la montura que lleva.' },
+  addon_bytes1:             { es: 'Bytes 1',                  help: 'Estado, anim tier... 0 = normal.' },
+  addon_bytes2:             { es: 'Bytes 2',                  help: 'Flags adicionales. 0 = normal.' },
+  addon_emote:              { es: 'Emote',                    help: 'ID de animación por defecto.' },
+  addon_visibility:         { es: 'Distancia de visibilidad', help: '0 = normal.' },
+  addon_auras:              { es: 'Auras',                    help: 'IDs de auras separadas por espacio. Ej: "1234 5678".' },
+
+  equip_id:                 { es: 'ID del conjunto',          help: '1, 2, 3... identifica el set.' },
+  equip_item1:              { es: 'ItemID mano derecha',      help: 'Arma de la mano derecha. ID de Item.dbc.' },
+  equip_item2:              { es: 'ItemID mano izquierda',    help: 'Arma de la mano izquierda.' },
+  equip_item3:              { es: 'ItemID a distancia',       help: 'Arma a distancia (arco, ballesta).' },
+
+  mov_ground:               { es: 'Movimiento en tierra',     help: '0=Ninguno, 1=Correr, 2=Flotar.' },
+  mov_swim:                 { es: 'Movimiento en agua',       help: '0=Ninguno, 1=Nadar.' },
+  mov_flight:               { es: 'Movimiento en vuelo',      help: '0=Ninguno, 1=Sin gravedad, 2=Puede volar.' },
+  mov_rooted:               { es: 'Enraizado',                help: '0=No, 1=No se mueve nunca.' },
+  mov_chase:                { es: 'Persecución',              help: 'Cómo persigue al jugador.' },
+  mov_random:               { es: 'Movimiento aleatorio',     help: 'Cómo deambula por la zona.' },
+  mov_interaction_pause:    { es: 'Pausa de interacción',     help: 'ms de pausa tras interactuar.' }
+};
+
+const COLUMNS = {
+  template: [
+    'entry','difficulty_entry_1','difficulty_entry_2','difficulty_entry_3',
+    'KillCredit1','KillCredit2','name','subname','IconName','gossip_menu_id',
+    'minlevel','maxlevel','exp','faction','npcflag',
+    'speed_walk','speed_run','speed_swim','speed_flight',
+    'detection_range','rank','dmgschool',
+    'BaseAttackTime','RangeAttackTime','BaseVariance','RangeVariance',
+    'unit_class','unit_flags','unit_flags2','dynamicflags',
+    'family','type','type_flags',
+    'lootid','pickpocketloot','skinloot','PetSpellDataId','VehicleId',
+    'mindmg','maxdmg','dmg_multiplier','attackpower',
+    'minrangedmg','maxrangedmg','rangedattackpower',
+    'mingold','maxgold','AIName','MovementType','movementId',
+    'HoverHeight','ModCrowd','ModCrowdRanged',
+    'HealthModifier','ManaModifier','ArmorModifier','DamageModifier','ExperienceModifier',
+    'RacialLeader','RegenHealth','flags_extra',
+    'resistance1','resistance2','resistance3','resistance4','resistance5','resistance6',
+    'trainer_type','trainer_spell','trainer_class','trainer_race',
+    'ScriptName','VerifiedBuild'
+  ],
+  model:      ['CreatureID','Idx','CreatureDisplayID','DisplayScale','Probability','VerifiedBuild'],
+  model_info: ['DisplayID','BoundingRadius','CombatReach','Gender','DisplayID_Other_Gender','VerifiedBuild'],
+  addon:      ['entry','path_id','mount','bytes1','bytes2','emote','visibilityDistanceType','auras'],
+  equip:      ['CreatureID','ID','ItemID1','ItemID2','ItemID3'],
+  spells:     ['CreatureID','Index','Spell','VerifiedBuild'],
+  resistance: ['CreatureID','School','Resistance','VerifiedBuild'],
+  movement:   ['CreatureId','Ground','Swim','Flight','Rooted','Chase','Random','InteractionPauseTimer']
+};
+
+const AI_OPTS = [
+  {v:'', l:'— Sin IA —'}, {v:'AggressorAI', l:'AggressorAI'}, {v:'PassiveAI', l:'PassiveAI'},
+  {v:'ReactorAI', l:'ReactorAI'}, {v:'GuardAI', l:'GuardAI'}, {v:'CritterAI', l:'CritterAI'},
+  {v:'SmartAI', l:'SmartAI'}, {v:'NullCreatureAI', l:'NullCreatureAI'}
+];
+const TRAINER_TYPE_OPTS = [
+  {v:0, l:'0 — No entrenador'},{v:1, l:'1 — Clase'},{v:2, l:'2 — Profesión'},{v:3, l:'3 — Mascotas'}
+];
+const GENDER_OPTS = [
+  {v:0, l:'0 — Masculino'},{v:1, l:'1 — Femenino'},{v:2, l:'2 — Neutro'}
+];
+const SCHOOL_OPTS = [
+  {v:1, l:'1 — Sagrado'},{v:2, l:'2 — Fuego'},{v:3, l:'3 — Naturaleza'},
+  {v:4, l:'4 — Escarcha'},{v:5, l:'5 — Sombra'},{v:6, l:'6 — Arcano'}
+];
+
+const DEFAULTS = {
+  entry: 90000, name: 'Nueva criatura', subname: '', IconName: '',
+  gossip_menu_id: 0, VerifiedBuild: 12340,
+  minlevel: 1, maxlevel: 1, exp: 2, rank: 0,
+  unit_class: 1, HoverHeight: 1,
+  faction: 35, npcflag: 0, type_flags: 0,
+  speed_walk: 1, speed_run: 1.14286, speed_swim: 1, speed_flight: 1,
+  detection_range: 20,
+  BaseAttackTime: 0, RangeAttackTime: 0,
+  BaseVariance: 1, RangeVariance: 1, dmgschool: 0,
+  mindmg: 0, maxdmg: 0, dmg_multiplier: 1, attackpower: 0,
+  minrangedmg: 0, maxrangedmg: 0, rangedattackpower: 0,
+  HealthModifier: 1, ManaModifier: 1, ArmorModifier: 1,
+  DamageModifier: 1, ExperienceModifier: 1,
+  type: 7, family: 0, unit_flags: 0, unit_flags2: 0,
+  dynamicflags: 0, flags_extra: 0, RacialLeader: 0, RegenHealth: 1,
+  lootid: 0, pickpocketloot: 0, skinloot: 0,
+  mingold: 0, maxgold: 0, KillCredit1: 0, KillCredit2: 0,
+  AIName: '', MovementType: 0, movementId: 0,
+  ModCrowd: 1, ModCrowdRanged: 1,
+  PetSpellDataId: 0, VehicleId: 0,
+  difficulty_entry_1: 0, difficulty_entry_2: 0, difficulty_entry_3: 0,
+  resistance1: 0, resistance2: 0, resistance3: 0,
+  resistance4: 0, resistance5: 0, resistance6: 0,
+  trainer_type: 0, trainer_spell: 0, trainer_class: 0, trainer_race: 0,
+  ScriptName: '',
+  modelid1: 0, modelid2: 0, modelid3: 0, modelid4: 0,
+  display_scale: 1,
+  mi_gender: 2, mi_bounding_radius: 0, mi_combat_reach: 0, mi_display_other_gender: 0,
+  addon_path_id: 0, addon_mount: 0, addon_bytes1: 0, addon_bytes2: 0,
+  addon_emote: 0, addon_visibility: 0, addon_auras: '',
+  equip_id: 1, equip_item1: 0, equip_item2: 0, equip_item3: 0,
+  mov_ground: 0, mov_swim: 0, mov_flight: 0, mov_rooted: 0,
+  mov_chase: 0, mov_random: 0, mov_interaction_pause: 0
+};
+
+const CATEGORIES = {
+  normal: { name: 'Criatura Normal', set: {} },
+  boss: {
+    name: 'Boss',
+    set: {
+      rank: 3, type_flags: 4, faction: 14, type: 7,
+      HealthModifier: 15, ManaModifier: 2, ArmorModifier: 3, DamageModifier: 8,
+      AIName: 'AggressorAI', minlevel: 80, maxlevel: 80
+    }
+  },
+  mount: {
+    name: 'Montura',
+    set: {
+      faction: 35, type: 1, AIName: 'PassiveAI',
+      unit_flags: 0, unit_flags2: 0, RegenHealth: 1,
+      rank: 0, type_flags: 0
+    }
+  },
+  vendor: {
+    name: 'NPC Vendedor',
+    set: {
+      npcflag: 129, faction: 35, type: 7, AIName: 'PassiveAI',
+      MovementType: 0, minlevel: 80, maxlevel: 80,
+      HealthModifier: 1, DamageModifier: 1
+    }
+  },
+  lua: {
+    name: 'NPC Lua / Gossip',
+    set: {
+      npcflag: 1, gossip_menu_id: 50000,
+      faction: 35, type: 7, rank: 0,
+      AIName: '', MovementType: 0,
+      minlevel: 80, maxlevel: 80
+    }
+  }
+};
+
+let currentCategory = 'normal';
+let currentTab = 'template';
+
+function buildTabs(){
+  const nav = document.getElementById('tabs-nav');
+  const content = document.getElementById('tabs-content');
+  nav.innerHTML = '';
+  content.innerHTML = '';
+
+  TABS.forEach(tab => {
+    const btn = document.createElement('button');
+    btn.className = 'tab-btn' + (tab.id === currentTab ? ' active' : '') + (tab.required ? '' : ' off');
+    btn.textContent = tab.icon + ' ' + tab.label;
+    btn.title = tab.table + ' — ' + tab.es + (tab.required ? ' (obligatoria)' : ' (opcional)');
+    btn.dataset.tab = tab.id;
+    btn.onclick = () => switchTab(tab.id);
+    nav.appendChild(btn);
+
+    const pane = document.createElement('div');
+    pane.className = 'tab-pane' + (tab.id === currentTab ? ' active' : '');
+    pane.id = 'pane-' + tab.id;
+
+    const header = document.createElement('div');
+    header.className = 'tab-header';
+    header.innerHTML = `
+      <div class="tab-header-line">
+        <span class="tab-header-table">${tab.table}</span>
+        <span class="tab-header-arrow">→</span>
+        <span class="tab-header-es">${tab.es}</span>
+        <span class="tab-header-badge ${tab.required ? 'yes' : 'no'}">
+          ${tab.required ? '✅ Obligatoria' : '⚙️ Opcional'}
+        </span>
+      </div>
+      <div class="tab-header-desc">${tab.desc}</div>
+    `;
+    pane.appendChild(header);
+
+    if (!tab.required){
+      // Casilla de verificación para activar/desactivar la tabla
+      const toggle = document.createElement('div');
+      toggle.className = 'optional-toggle';
+      toggle.innerHTML = `
+        <input type="checkbox" id="toggle-${tab.id}">
+        <label for="toggle-${tab.id}">Incluir <b>${tab.table}</b> en el SQL (opcional)</label>
+      `;
+      pane.appendChild(toggle);
+
+      const fieldsWrap = document.createElement('div');
+      fieldsWrap.className = 'optional-fields';
+      fieldsWrap.id = 'fields-' + tab.id;
+      fieldsWrap.appendChild(buildFieldsForTab(tab.id));
+      pane.appendChild(fieldsWrap);
+
+      setTimeout(() => {
+        const chk = document.getElementById('toggle-' + tab.id);
+        if (chk) {
+          chk.addEventListener('change', function() {
+            document.getElementById('fields-' + tab.id).classList.toggle('visible', this.checked);
+            const navBtn = document.querySelector(`.tab-btn[data-tab="${tab.id}"]`);
+            if (navBtn) {
+              navBtn.classList.toggle('off', !this.checked);
+              navBtn.classList.toggle('on', this.checked);
+            }
+          });
+        }
+      }, 0);
+    } else {
+      pane.appendChild(buildFieldsForTab(tab.id));
+    }
+
+    content.appendChild(pane);
+  });
+}
+
+function makeLabel(fieldKey, extra){
+  const info = FIELD_LABELS[fieldKey] || { es: fieldKey, help: '' };
+  return `
+    <label>
+      <span class="label-main">
+        <span class="label-key">${fieldKey}</span>
+        <span class="label-sep">·</span>
+        <span class="label-es">${info.es}</span>
+        ${extra || ''}
+      </span>
+      <span class="badge-auto">AUTO</span>
+    </label>
+    <span class="help">${info.help}</span>
+  `;
+}
+
+function buildFieldsForTab(tabId){
+  const wrapper = document.createElement('div');
+  wrapper.className = 'grid';
+
+  const addField = (type, id, value, fieldKey, step) => {
+    const div = document.createElement('div');
+    div.className = 'field';
+    div.dataset.field = id;
+    const stepAttr = step ? ` step="${step}"` : '';
+    div.innerHTML = `
+      ${makeLabel(fieldKey)}
+      <input type="${type}" id="${id}" value="${value}"${stepAttr}>
+    `;
+    wrapper.appendChild(div);
+  };
+
+  const addSelect = (id, opts, sel, fieldKey) => {
+    const div = document.createElement('div');
+    div.className = 'field';
+    div.dataset.field = id;
+    div.innerHTML = `
+      ${makeLabel(fieldKey)}
+      <select id="${id}">
+        ${opts.map(o => `<option value="${o.v}"${String(o.v) === String(sel) ? ' selected' : ''}>${o.l}</option>`).join('')}
+      </select>
+    `;
+    wrapper.appendChild(div);
+  };
+
+  if (tabId === 'template'){
+    addField('number','entry',DEFAULTS.entry,'entry');
+    addField('text','name',DEFAULTS.name,'name');
+    addField('text','subname',DEFAULTS.subname,'subname');
+    addField('text','IconName',DEFAULTS.IconName,'IconName');
+    addField('number','gossip_menu_id',DEFAULTS.gossip_menu_id,'gossip_menu_id');
+    addField('number','VerifiedBuild',DEFAULTS.VerifiedBuild,'VerifiedBuild');
+    addField('number','minlevel',DEFAULTS.minlevel,'minlevel');
+    addField('number','maxlevel',DEFAULTS.maxlevel,'maxlevel');
+    addSelect('exp',[{v:0,l:'0 — Clásico'},{v:1,l:'1 — TBC'},{v:2,l:'2 — WotLK'}],DEFAULTS.exp,'exp');
+    addSelect('rank',[
+      {v:0,l:'0 — Normal'},{v:1,l:'1 — Élite'},{v:2,l:'2 — Élite raro'},
+      {v:3,l:'3 — Boss'},{v:4,l:'4 — Raro'}
+    ],DEFAULTS.rank,'rank');
+    addSelect('unit_class',[
+      {v:1,l:'1 — Guerrero'},{v:2,l:'2 — Paladín'},{v:4,l:'4 — Pícaro'},{v:8,l:'8 — Mago'}
+    ],DEFAULTS.unit_class,'unit_class');
+    addField('number','HoverHeight',DEFAULTS.HoverHeight,'HoverHeight','0.1');
+    addField('number','faction',DEFAULTS.faction,'faction');
+    addField('number','npcflag',DEFAULTS.npcflag,'npcflag');
+    addField('number','type_flags',DEFAULTS.type_flags,'type_flags');
+    addField('number','speed_walk',DEFAULTS.speed_walk,'speed_walk','0.01');
+    addField('number','speed_run',DEFAULTS.speed_run,'speed_run','0.01');
+    addField('number','speed_swim',DEFAULTS.speed_swim,'speed_swim','0.01');
+    addField('number','speed_flight',DEFAULTS.speed_flight,'speed_flight','0.01');
+    addField('number','detection_range',DEFAULTS.detection_range,'detection_range');
+    addField('number','BaseAttackTime',DEFAULTS.BaseAttackTime,'BaseAttackTime');
+    addField('number','RangeAttackTime',DEFAULTS.RangeAttackTime,'RangeAttackTime');
+    addField('number','BaseVariance',DEFAULTS.BaseVariance,'BaseVariance','0.01');
+    addField('number','RangeVariance',DEFAULTS.RangeVariance,'RangeVariance','0.01');
+    addSelect('dmgschool',[
+      {v:0,l:'0 — Físico'},{v:1,l:'1 — Sagrado'},{v:2,l:'2 — Fuego'},{v:3,l:'3 — Naturaleza'},
+      {v:4,l:'4 — Escarcha'},{v:5,l:'5 — Sombra'},{v:6,l:'6 — Arcano'}
+    ],DEFAULTS.dmgschool,'dmgschool');
+    addField('number','mindmg',DEFAULTS.mindmg,'mindmg');
+    addField('number','maxdmg',DEFAULTS.maxdmg,'maxdmg');
+    addField('number','dmg_multiplier',DEFAULTS.dmg_multiplier,'dmg_multiplier','0.01');
+    addField('number','attackpower',DEFAULTS.attackpower,'attackpower');
+    addField('number','minrangedmg',DEFAULTS.minrangedmg,'minrangedmg');
+    addField('number','maxrangedmg',DEFAULTS.maxrangedmg,'maxrangedmg');
+    addField('number','rangedattackpower',DEFAULTS.rangedattackpower,'rangedattackpower');
+    addField('number','HealthModifier',DEFAULTS.HealthModifier,'HealthModifier','0.01');
+    addField('number','ManaModifier',DEFAULTS.ManaModifier,'ManaModifier','0.01');
+    addField('number','ArmorModifier',DEFAULTS.ArmorModifier,'ArmorModifier','0.01');
+    addField('number','DamageModifier',DEFAULTS.DamageModifier,'DamageModifier','0.01');
+    addField('number','ExperienceModifier',DEFAULTS.ExperienceModifier,'ExperienceModifier','0.01');
+    addSelect('type',[
+      {v:0,l:'0 — Sin especificar'},{v:1,l:'1 — Bestia'},{v:2,l:'2 — Dragonante'},{v:3,l:'3 — Demonio'},
+      {v:4,l:'4 — Elemental'},{v:5,l:'5 — Gigante'},{v:6,l:'6 — No-muerto'},{v:7,l:'7 — Humanoide'},
+      {v:8,l:'8 — Critter'},{v:9,l:'9 — Mecánico'},{v:11,l:'11 — Tótem'},{v:12,l:'12 — Mascota'}
+    ],DEFAULTS.type,'type');
+    addField('number','family',DEFAULTS.family,'family');
+    addField('number','unit_flags',DEFAULTS.unit_flags,'unit_flags');
+    addField('number','unit_flags2',DEFAULTS.unit_flags2,'unit_flags2');
+    addField('number','dynamicflags',DEFAULTS.dynamicflags,'dynamicflags');
+    addField('number','flags_extra',DEFAULTS.flags_extra,'flags_extra');
+    addField('number','RacialLeader',DEFAULTS.RacialLeader,'RacialLeader');
+    addField('number','RegenHealth',DEFAULTS.RegenHealth,'RegenHealth');
+    addField('number','lootid',DEFAULTS.lootid,'lootid');
+    addField('number','pickpocketloot',DEFAULTS.pickpocketloot,'pickpocketloot');
+    addField('number','skinloot',DEFAULTS.skinloot,'skinloot');
+    addField('number','mingold',DEFAULTS.mingold,'mingold');
+    addField('number','maxgold',DEFAULTS.maxgold,'maxgold');
+    addField('number','KillCredit1',DEFAULTS.KillCredit1,'KillCredit1');
+    addField('number','KillCredit2',DEFAULTS.KillCredit2,'KillCredit2');
+    addSelect('AIName', AI_OPTS, DEFAULTS.AIName, 'AIName');
+    addSelect('MovementType',[
+      {v:0,l:'0 — Estático'},{v:1,l:'1 — Aleatorio'},{v:2,l:'2 — Ruta'}
+    ],DEFAULTS.MovementType,'MovementType');
+    addField('number','movementId',DEFAULTS.movementId,'movementId');
+    addField('number','ModCrowd',DEFAULTS.ModCrowd,'ModCrowd','0.01');
+    addField('number','ModCrowdRanged',DEFAULTS.ModCrowdRanged,'ModCrowdRanged','0.01');
+    addField('number','resistance1',DEFAULTS.resistance1,'resistance1');
+    addField('number','resistance2',DEFAULTS.resistance2,'resistance2');
+    addField('number','resistance3',DEFAULTS.resistance3,'resistance3');
+    addField('number','resistance4',DEFAULTS.resistance4,'resistance4');
+    addField('number','resistance5',DEFAULTS.resistance5,'resistance5');
+    addField('number','resistance6',DEFAULTS.resistance6,'resistance6');
+    addSelect('trainer_type', TRAINER_TYPE_OPTS, DEFAULTS.trainer_type,'trainer_type');
+    addField('number','trainer_spell',DEFAULTS.trainer_spell,'trainer_spell');
+    addField('number','trainer_class',DEFAULTS.trainer_class,'trainer_class');
+    addField('number','trainer_race',DEFAULTS.trainer_race,'trainer_race');
+    addField('number','PetSpellDataId',DEFAULTS.PetSpellDataId,'PetSpellDataId');
+    addField('number','VehicleId',DEFAULTS.VehicleId,'VehicleId');
+    addField('number','difficulty_entry_1',DEFAULTS.difficulty_entry_1,'difficulty_entry_1');
+    addField('number','difficulty_entry_2',DEFAULTS.difficulty_entry_2,'difficulty_entry_2');
+    addField('number','difficulty_entry_3',DEFAULTS.difficulty_entry_3,'difficulty_entry_3');
+    addField('text','ScriptName',DEFAULTS.ScriptName,'ScriptName');
+  }
+  else if (tabId === 'model'){
+    addField('number','modelid1',DEFAULTS.modelid1,'modelid1');
+    addField('number','modelid2',DEFAULTS.modelid2,'modelid2');
+    addField('number','modelid3',DEFAULTS.modelid3,'modelid3');
+    addField('number','modelid4',DEFAULTS.modelid4,'modelid4');
+    addField('number','display_scale',DEFAULTS.display_scale,'display_scale','0.01');
+    const sep = document.createElement('div');
+    sep.style.gridColumn = '1 / -1';
+    sep.innerHTML = '<hr style="border-color:var(--border);margin:10px 0"><p style="font-size:0.82rem;color:var(--muted)"><b>creature_model_info</b> — datos físicos del modelo</p>';
+    wrapper.appendChild(sep);
+    addSelect('mi_gender', GENDER_OPTS, DEFAULTS.mi_gender, 'mi_gender');
+    addField('number','mi_bounding_radius',DEFAULTS.mi_bounding_radius,'mi_bounding_radius','0.01');
+    addField('number','mi_combat_reach',DEFAULTS.mi_combat_reach,'mi_combat_reach','0.01');
+    addField('number','mi_display_other_gender',DEFAULTS.mi_display_other_gender,'mi_display_other_gender');
+  }
+  else if (tabId === 'addon'){
+    addField('number','addon_path_id',DEFAULTS.addon_path_id,'addon_path_id');
+    addField('number','addon_mount',DEFAULTS.addon_mount,'addon_mount');
+    addField('number','addon_bytes1',DEFAULTS.addon_bytes1,'addon_bytes1');
+    addField('number','addon_bytes2',DEFAULTS.addon_bytes2,'addon_bytes2');
+    addField('number','addon_emote',DEFAULTS.addon_emote,'addon_emote');
+    addField('number','addon_visibility',DEFAULTS.addon_visibility,'addon_visibility');
+    addField('text','addon_auras',DEFAULTS.addon_auras,'addon_auras');
+  }
+  else if (tabId === 'equip'){
+    addField('number','equip_id',DEFAULTS.equip_id,'equip_id');
+    addField('number','equip_item1',DEFAULTS.equip_item1,'equip_item1');
+    addField('number','equip_item2',DEFAULTS.equip_item2,'equip_item2');
+    addField('number','equip_item3',DEFAULTS.equip_item3,'equip_item3');
+  }
+  else if (tabId === 'spells'){
+    for (let i = 0; i < 8; i++){
+      const div = document.createElement('div');
+      div.className = 'field';
+      div.dataset.field = `spell_${i}`;
+      div.innerHTML = `
+        <label>
+          <span class="label-main">
+            <span class="label-key">spell_${i}</span>
+            <span class="label-sep">·</span>
+            <span class="label-es">Hechizo ${i}</span>
+          </span>
+          <span class="badge-auto">AUTO</span>
+        </label>
+        <span class="help">ID de hechizo en el slot ${i}. 0 = omitir.</span>
+        <input type="number" id="spell_${i}" value="0">
+      `;
+      wrapper.appendChild(div);
+    }
+  }
+  else if (tabId === 'resistance'){
+    SCHOOL_OPTS.forEach(s => {
+      const div = document.createElement('div');
+      div.className = 'field';
+      div.dataset.field = `res_school_${s.v}`;
+      div.innerHTML = `
+        <label>
+          <span class="label-main">
+            <span class="label-key">resistance${s.v}</span>
+            <span class="label-sep">·</span>
+            <span class="label-es">Resistencia ${s.l.replace(/^[0-9]+ — /,'')}</span>
+          </span>
+          <span class="badge-auto">AUTO</span>
+        </label>
+        <span class="help">Valor de resistencia a esa escuela. 0 = omitir.</span>
+        <input type="number" id="res_school_${s.v}" value="0">
+      `;
+      wrapper.appendChild(div);
+    });
+  }
+  else if (tabId === 'movement'){
+    addSelect('mov_ground',[{v:0,l:'0 — Ninguno'},{v:1,l:'1 — Correr'},{v:2,l:'2 — Flotar'}],DEFAULTS.mov_ground,'mov_ground');
+    addSelect('mov_swim',[{v:0,l:'0 — Ninguno'},{v:1,l:'1 — Nadar'}],DEFAULTS.mov_swim,'mov_swim');
+    addSelect('mov_flight',[{v:0,l:'0 — Ninguno'},{v:1,l:'1 — Sin gravedad'},{v:2,l:'2 — Puede volar'}],DEFAULTS.mov_flight,'mov_flight');
+    addSelect('mov_rooted',[{v:0,l:'0 — No'},{v:1,l:'1 — Sí'}],DEFAULTS.mov_rooted,'mov_rooted');
+    addSelect('mov_chase',[{v:0,l:'0 — Correr'},{v:1,l:'1 — Caminar'},{v:2,l:'2 — Siempre caminar'}],DEFAULTS.mov_chase,'mov_chase');
+    addSelect('mov_random',[{v:0,l:'0 — Caminar'},{v:1,l:'1 — Correr'},{v:2,l:'2 — Siempre correr'}],DEFAULTS.mov_random,'mov_random');
+    addField('number','mov_interaction_pause',DEFAULTS.mov_interaction_pause,'mov_interaction_pause');
+  }
+
+  return wrapper;
+}
+
+function switchTab(tabId){
+  currentTab = tabId;
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tabId);
+  });
+  document.querySelectorAll('.tab-pane').forEach(pane => {
+    pane.classList.toggle('active', pane.id === 'pane-' + tabId);
+  });
+}
+
+function num(id, def = 0){
+  const el = document.getElementById(id);
+  if (!el) return def;
+  const n = parseInt(el.value, 10);
+  return isNaN(n) ? def : n;
+}
+function fnum(id, def = 0){
+  const el = document.getElementById(id);
+  if (!el) return def;
+  const n = parseFloat(el.value);
+  return isNaN(n) ? def : n;
+}
+function str(id, def = ''){
+  const el = document.getElementById(id);
+  if (!el) return def;
+  return (el.value || def).replace(/'/g, "''");
+}
+
+function isTabEnabled(tabId){
+  const chk = document.getElementById('toggle-' + tabId);
+  return chk ? chk.checked : false;
+}
+
+function generarSQL(){
+  try {
+    const v = {
+      entry: num('entry', 90000),
+      difficulty_entry_1: num('difficulty_entry_1', 0),
+      difficulty_entry_2: num('difficulty_entry_2', 0),
+      difficulty_entry_3: num('difficulty_entry_3', 0),
+      KillCredit1: num('KillCredit1', 0),
+      KillCredit2: num('KillCredit2', 0),
+      name: `'${str('name','')}'`,
+      subname: str('subname','') ? `'${str('subname','')}'` : 'NULL',
+      IconName: str('IconName','') ? `'${str('IconName','')}'` : 'NULL',
+      gossip_menu_id: num('gossip_menu_id', 0),
+      minlevel: num('minlevel', 1),
+      maxlevel: num('maxlevel', 1),
+      exp: num('exp', 2),
+      faction: num('faction', 35),
+      npcflag: num('npcflag', 0),
+      speed_walk: fnum('speed_walk', 1),
+      speed_run: fnum('speed_run', 1.14286),
+      speed_swim: fnum('speed_swim', 1),
+      speed_flight: fnum('speed_flight', 1),
+      detection_range: fnum('detection_range', 20),
+      rank: num('rank', 0),
+      dmgschool: num('dmgschool', 0),
+      BaseAttackTime: num('BaseAttackTime', 0),
+      RangeAttackTime: num('RangeAttackTime', 0),
+      BaseVariance: fnum('BaseVariance', 1),
+      RangeVariance: fnum('RangeVariance', 1),
+      unit_class: num('unit_class', 1),
+      unit_flags: num('unit_flags', 0),
+      unit_flags2: num('unit_flags2', 0),
+      dynamicflags: num('dynamicflags', 0),
+      family: num('family', 0),
+      type: num('type', 7),
+      type_flags: num('type_flags', 0),
+      lootid: num('lootid', 0),
+      pickpocketloot: num('pickpocketloot', 0),
+      skinloot: num('skinloot', 0),
+      PetSpellDataId: num('PetSpellDataId', 0),
+      VehicleId: num('VehicleId', 0),
+      mindmg: num('mindmg', 0),
+      maxdmg: num('maxdmg', 0),
+      dmg_multiplier: fnum('dmg_multiplier', 1),
+      attackpower: num('attackpower', 0),
+      minrangedmg: num('minrangedmg', 0),
+      maxrangedmg: num('maxrangedmg', 0),
+      rangedattackpower: num('rangedattackpower', 0),
+      mingold: num('mingold', 0),
+      maxgold: num('maxgold', 0),
+      AIName: `'${str('AIName','')}'`,
+      MovementType: num('MovementType', 0),
+      movementId: num('movementId', 0),
+      HoverHeight: fnum('HoverHeight', 1),
+      ModCrowd: fnum('ModCrowd', 1),
+      ModCrowdRanged: fnum('ModCrowdRanged', 1),
+      HealthModifier: fnum('HealthModifier', 1),
+      ManaModifier: fnum('ManaModifier', 1),
+      ArmorModifier: fnum('ArmorModifier', 1),
+      DamageModifier: fnum('DamageModifier', 1),
+      ExperienceModifier: fnum('ExperienceModifier', 1),
+      RacialLeader: num('RacialLeader', 0),
+      RegenHealth: num('RegenHealth', 1),
+      flags_extra: num('flags_extra', 0),
+      resistance1: num('resistance1', 0),
+      resistance2: num('resistance2', 0),
+      resistance3: num('resistance3', 0),
+      resistance4: num('resistance4', 0),
+      resistance5: num('resistance5', 0),
+      resistance6: num('resistance6', 0),
+      trainer_type: num('trainer_type', 0),
+      trainer_spell: num('trainer_spell', 0),
+      trainer_class: num('trainer_class', 0),
+      trainer_race: num('trainer_race', 0),
+      ScriptName: `'${str('ScriptName','')}'`,
+      VerifiedBuild: num('VerifiedBuild', 12340)
+    };
+
+    const ctVals = COLUMNS.template.map(c => v[c] !== undefined ? v[c] : 0);
+
+    let sql = `-- ============================================================
+-- INSERT COMPLETO para AzerothCore (Estructura Moderna)
+-- entry: ${v.entry} | Nombre: ${v.name.replace(/'/g,"")} [${CATEGORIES[currentCategory].name}]
+-- ============================================================
+
+-- 1. creature_template
+INSERT INTO \`creature_template\` (\`${COLUMNS.template.join('`, `')}\`) VALUES
+(${ctVals.join(', ')});
+`;
+
+    const models = [num('modelid1',0), num('modelid2',0), num('modelid3',0), num('modelid4',0)];
+    const modelRows = [];
+    const modelInfoRows = [];
+    const displayScale = fnum('display_scale', 1);
+    const miGender = num('mi_gender', 2);
+    const miBounding = fnum('mi_bounding_radius', 0);
+    const miReach = fnum('mi_combat_reach', 0);
+    const miOtherGender = num('mi_display_other_gender', 0);
+
+    models.forEach((displayId, idx) => {
+      if (displayId > 0){
+        modelRows.push(`(${v.entry}, ${idx}, ${displayId}, ${displayScale}, 1.0, ${v.VerifiedBuild})`);
+        modelInfoRows.push(`(${displayId}, ${miBounding}, ${miReach}, ${miGender}, ${miOtherGender}, ${v.VerifiedBuild})`);
+      }
+    });
+
+    if (modelRows.length > 0){
+      sql += `\n-- 2. creature_template_model\nINSERT INTO \`creature_template_model\` (\`${COLUMNS.model.join('`, `')}\`) VALUES\n${modelRows.join(',\n')};\n`;
+      sql += `\n-- 3. creature_model_info\nINSERT INTO \`creature_model_info\` (\`${COLUMNS.model_info.join('`, `')}\`) VALUES\n${modelInfoRows.join(',\n')};\n`;
+    } else {
+      sql += `\n-- ⚠️ No se ha definido ningún CreatureDisplayID en la pestaña Model.\n`;
+    }
+
+    // 4. Addon (solo si la casilla está activa)
+    if (isTabEnabled('addon')){
+      const addonPath = num('addon_path_id',0);
+      const addonMount = num('addon_mount',0);
+      const addonB1 = num('addon_bytes1',0);
+      const addonB2 = num('addon_bytes2',0);
+      const addonEmote = num('addon_emote',0);
+      const addonVis = num('addon_visibility',0);
+      const addonAuras = str('addon_auras','');
+      const auraVal = addonAuras ? `'${addonAuras}'` : 'NULL';
+      sql += `\n-- 4. creature_template_addon\nINSERT INTO \`creature_template_addon\` (\`${COLUMNS.addon.join('`, `')}\`) VALUES\n(${v.entry}, ${addonPath}, ${addonMount}, ${addonB1}, ${addonB2}, ${addonEmote}, ${addonVis}, ${auraVal});\n`;
+    }
+
+    // 5. Equip (solo si la casilla está activa)
+    if (isTabEnabled('equip')){
+      const equipId = num('equip_id',1);
+      const e1 = num('equip_item1',0);
+      const e2 = num('equip_item2',0);
+      const e3 = num('equip_item3',0);
+      sql += `\n-- 5. creature_equip_template\nINSERT INTO \`creature_equip_template\` (\`${COLUMNS.equip.join('`, `')}\`) VALUES\n(${v.entry}, ${equipId}, ${e1}, ${e2}, ${e3});\n`;
+    }
+
+    // 6. Spells (solo si la casilla está activa y hay valores)
+    if (isTabEnabled('spells')){
+      const spellRows = [];
+      for (let i = 0; i < 8; i++){
+        const sp = num(`spell_${i}`, 0);
+        if (sp > 0) spellRows.push(`(${v.entry}, ${i}, ${sp}, ${v.VerifiedBuild})`);
+      }
+      if (spellRows.length > 0){
+        sql += `\n-- 6. creature_template_spell\nINSERT INTO \`creature_template_spell\` (\`${COLUMNS.spells.join('`, `')}\`) VALUES\n${spellRows.join(',\n')};\n`;
+      }
+    }
+
+    // 7. Resistance (solo si la casilla está activa y hay valores)
+    if (isTabEnabled('resistance')){
+      const resRows = [];
+      for (let school = 1; school <= 6; school++){
+        const res = num(`res_school_${school}`, 0);
+        if (res !== 0) resRows.push(`(${v.entry}, ${school}, ${res}, ${v.VerifiedBuild})`);
+      }
+      if (resRows.length > 0){
+        sql += `\n-- 7. creature_template_resistance\nINSERT INTO \`creature_template_resistance\` (\`${COLUMNS.resistance.join('`, `')}\`) VALUES\n${resRows.join(',\n')};\n`;
+      }
+    }
+
+    // 8. Movement (solo si la casilla está activa y hay valores)
+    if (isTabEnabled('movement')){
+      const movVals = [
+        num('mov_ground',0), num('mov_swim',0), num('mov_flight',0), num('mov_rooted',0),
+        num('mov_chase',0), num('mov_random',0), num('mov_interaction_pause',0)
+      ];
+      if (movVals.some(x => x !== 0)){
+        sql += `\n-- 8. creature_template_movement\nINSERT INTO \`creature_template_movement\` (\`${COLUMNS.movement.join('`, `')}\`) VALUES\n(${v.entry}, ${movVals.join(', ')});\n`;
+      }
+    }
+
+    if (currentCategory === 'lua'){
+      sql += `\n-- ============================================================\n-- ⚠️ NPC Lua: registra los eventos en tu archivo .lua\n--   RegisterCreatureGossipEvent(${v.entry}, 1, OnGossipHello)\n--   RegisterCreatureGossipEvent(${v.entry}, 2, OnGossipSelect)\n-- ============================================================\n`;
+    }
+
+    const out = document.getElementById('output');
+    out.textContent = sql;
+    out.scrollIntoView({ behavior:'smooth', block:'center' });
+  } catch(e){
+    alert('Error al generar el INSERT: ' + e.message);
+  }
+}
+
+function generarDelete(){
+  const entry = num('entry', 0);
+  if (entry <= 0){
+    document.getElementById('output').textContent = '⚠️ Introduce un entry válido antes de generar el DELETE.';
+    return;
+  }
+
+  const displays = [num('modelid1',0), num('modelid2',0), num('modelid3',0), num('modelid4',0)].filter(x => x > 0);
+
+  let sql = `-- ============================================================
+-- DELETE COMPLETO para AzerothCore (Estructura Moderna)
+-- entry: ${entry}
+-- ============================================================
+
+DELETE FROM \`creature_template\` WHERE \`entry\` = ${entry};
+DELETE FROM \`creature_template_model\` WHERE \`CreatureID\` = ${entry};
+`;
+  if (displays.length > 0){
+    sql += `DELETE FROM \`creature_model_info\` WHERE \`DisplayID\` IN (${displays.join(', ')});\n`;
+  }
+  sql += `DELETE FROM \`creature_template_addon\` WHERE \`entry\` = ${entry};
+DELETE FROM \`creature_equip_template\` WHERE \`CreatureID\` = ${entry};
+DELETE FROM \`creature_template_spell\` WHERE \`CreatureID\` = ${entry};
+DELETE FROM \`creature_template_resistance\` WHERE \`CreatureID\` = ${entry};
+DELETE FROM \`creature_template_movement\` WHERE \`CreatureId\` = ${entry};
+`;
+
+  const out = document.getElementById('output');
+  out.textContent = sql;
+  out.scrollIntoView({ behavior:'smooth', block:'center' });
+}
+
+function copiarSQL(ev){
+  const out = document.getElementById('output');
+  const txt = out.textContent;
+  if (!txt || !txt.trim()){ alert('Primero genera el SQL.'); return; }
+  if (navigator.clipboard && window.isSecureContext){
+    navigator.clipboard.writeText(txt).then(() => mostrarCopiado(ev.target))
+      .catch(() => copiarFallback(out, ev.target));
+  } else {
+    copiarFallback(out, ev.target);
+  }
+}
+function copiarFallback(outEl, btn){
+  const range = document.createRange();
+  range.selectNodeContents(outEl);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+  try {
+    const ok = document.execCommand('copy');
+    if (ok) mostrarCopiado(btn);
+    else alert('Pulsa Ctrl+C para copiar.');
+  } catch { alert('Selecciona y pulsa Ctrl+C.'); }
+  sel.removeAllRanges();
+}
+function mostrarCopiado(btn){
+  const orig = btn.textContent;
+  btn.textContent = '✅ Copiado';
+  setTimeout(() => btn.textContent = orig, 1500);
+}
+
+function resetAllToDefaults(){
+  Object.keys(DEFAULTS).forEach(k => {
+    const el = document.getElementById(k);
+    if (el) el.value = DEFAULTS[k];
+  });
+  for (let i = 0; i < 8; i++){
+    const el = document.getElementById(`spell_${i}`);
+    if (el) el.value = 0;
+  }
+  for (let s = 1; s <= 6; s++){
+    const el = document.getElementById(`res_school_${s}`);
+    if (el) el.value = 0;
+  }
+  // Desactivar todas las pestañas opcionales
+  OPTIONAL_TABS.forEach(tabId => {
+    const chk = document.getElementById('toggle-' + tabId);
+    if (chk) chk.checked = false;
+    const f = document.getElementById('fields-' + tabId);
+    if (f) f.classList.remove('visible');
+    const navBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+    if (navBtn){
+      navBtn.classList.remove('on');
+      navBtn.classList.add('off');
+    }
+  });
+  document.querySelectorAll('.field.auto').forEach(f => f.classList.remove('auto'));
+}
+
+function markAutoFields(fields){
+  fields.forEach(k => {
+    const wrap = document.querySelector(`.field[data-field="${k}"]`);
+    if (wrap) wrap.classList.add('auto');
+  });
+}
+
+function applyCategory(name, skipReset){
+  const cat = CATEGORIES[name];
+  if (!cat) return;
+  if (!skipReset) resetAllToDefaults();
+  Object.keys(cat.set).forEach(k => {
+    const el = document.getElementById(k);
+    if (el) el.value = cat.set[k];
+  });
+  markAutoFields(Object.keys(cat.set));
+  document.querySelectorAll('.cat-card').forEach(c => {
+    c.classList.toggle('active', c.dataset.cat === name);
+  });
+  currentCategory = name;
+  document.getElementById('output').textContent = '';
+}
+
+function resetForm(){
+  resetAllToDefaults();
+  document.querySelectorAll('.cat-card').forEach(c => c.classList.remove('active'));
+  currentCategory = 'normal';
+  document.getElementById('output').textContent = '';
+  switchTab('template');
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  buildTabs();
+  applyCategory('normal', true);
+  switchTab('template');
+});
+</script>
+</body>
+</html>
